@@ -1,164 +1,137 @@
-
+  
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Neon Run</title>
-  <style>
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      background: #101525;
-      color: white;
-      font-family: Arial, sans-serif;
-      text-align: center;
-    }
-    h1 { color: #5cf6ff; }
-    canvas {
-      width: 100%;
-      max-width: 480px;
-      background: #18233b;
-      border: 2px solid #5cf6ff;
-      border-radius: 12px;
-      display: block;
-      margin: auto;
-      touch-action: manipulation;
-    }
-    button {
-      margin: 12px;
-      padding: 14px 28px;
-      border: 0;
-      border-radius: 10px;
-      background: #5cf6ff;
-      color: #101525;
-      font-size: 18px;
-      font-weight: bold;
-    }
-    p { color: #cbd5e1; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>NEON RUN</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#080b18;color:white;font-family:Arial,sans-serif;text-align:center}
+h1{margin:15px 0 4px;color:#55f5ff;letter-spacing:5px;text-shadow:0 0 15px #00eaff}
+p{color:#aebbd7;margin:8px}
+#hud{display:flex;justify-content:space-around;max-width:480px;margin:14px auto;font-weight:bold}
+canvas{display:block;width:100%;max-width:480px;height:auto;margin:auto;border:1px solid #235b85;border-radius:12px;touch-action:manipulation}
+button{border:0;border-radius:10px;padding:14px 28px;margin:12px;background:#53f5ff;color:#07101e;font-size:17px;font-weight:bold}
+#hint{font-size:12px}
+</style>
 </head>
 <body>
-  <h1>NEON RUN</h1>
-  <p>Salta los obstáculos y consigue puntos.</p>
-  <canvas id="game" width="360" height="480"></canvas>
-  <button id="jump">SALTAR</button>
-  <p id="score">Puntos: 0</p>
+<h1>NEON RUN</h1>
+<p>Corre. Salta. Sobrevive.</p>
+<div id="hud"><span id="score">PUNTOS 0</span><span id="best">RÉCORD 0</span></div>
+<canvas id="game" width="360" height="500"></canvas>
+<button id="jump">SALTAR</button>
+<p id="hint">Toca SALTAR o la pantalla para brincar</p>
+<script>
+const c=document.getElementById("game"),x=c.getContext("2d");
+const scoreEl=document.getElementById("score"),bestEl=document.getElementById("best");
+let p,obs,parts,score,speed,frame,over,started,best=0;
+try{best=Number(localStorage.getItem("neonBest"))||0}catch(e){}
+bestEl.textContent="RÉCORD "+best;
 
-  <script>
-    const canvas = document.getElementById("game");
-    const ctx = canvas.getContext("2d");
-    const scoreText = document.getElementById("score");
-
-    let player, obstacles, score, speed, over, frame;
-
-    function reset() {
-      player = { x: 45, y: 390, w: 28, h: 36, vy: 0, grounded: true };
-      obstacles = [];
-      score = 0;
-      speed = 4;
-      over = false;
-      frame = 0;
-    }
-
-    function jump() {
-      if (over) {
-        reset();
-        return;
-      }
-      if (player.grounded) {
-        player.vy = -12;
-        player.grounded = false;
-      }
-    }
-
-    document.getElementById("jump").addEventListener("click", jump);
-    canvas.addEventListener("click", jump);
-
-    document.addEventListener("keydown", e => {
-      if (e.code === "Space" || e.code === "ArrowUp") {
-        e.preventDefault();
-        jump();
-      }
-    });
-
-    function draw() {
-      ctx.clearRect(0, 0, 360, 480);
-
-      ctx.fillStyle = "#253653";
-      ctx.fillRect(0, 426, 360, 54);
-
-      ctx.strokeStyle = "#5cf6ff";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(0, 426);
-      ctx.lineTo(360, 426);
-      ctx.stroke();
-
-      ctx.fillStyle = "#5cf6ff";
-      ctx.fillRect(player.x, player.y, player.w, player.h);
-
-      ctx.fillStyle = "#ff5577";
-      obstacles.forEach(o => {
-        ctx.fillRect(o.x, o.y, o.w, o.h);
-      });
-
-      ctx.fillStyle = "white";
-      ctx.font = "16px Arial";
-      ctx.fillText("NEON RUN", 12, 25);
-
-      if (over) {
-        ctx.fillStyle = "rgba(0,0,0,0.75)";
-        ctx.fillRect(20, 170, 320, 110);
-        ctx.fillStyle = "#ff5577";
-        ctx.font = "bold 25px Arial";
-        ctx.fillText("FIN DEL JUEGO", 72, 215);
-        ctx.fillStyle = "white";
-        ctx.font = "15px Arial";
-        ctx.fillText("Pulsa SALTAR para reiniciar", 67, 247);
-      }
-    }
-
-    function update() {
-      if (!over) {
-        frame++;
-        player.vy += 0.6;
-        player.y += player.vy;
-
-        if (player.y + player.h >= 426) {
-          player.y = 426 - player.h;
-          player.vy = 0;
-          player.grounded = true;
-        }
-
-        if (frame % 85 === 0) {
-          obstacles.push({ x: 360, y: 396, w: 25, h: 30 });
-        }
-
-        obstacles.forEach(o => o.x -= speed);
-        obstacles = obstacles.filter(o => o.x + o.w > 0);
-
-        for (const o of obstacles) {
-          if (
-            player.x < o.x + o.w &&
-            player.x + player.w > o.x &&
-            player.y < o.y + o.h &&
-            player.y + player.h > o.y
-          ) {
-            over = true;
-          }
-        }
-
-        score++;
-        speed = 4 + score / 600;
-        scoreText.textContent = "Puntos: " + Math.floor(score / 6);
-      }
-      draw();
-      requestAnimationFrame(update);
-    }
-
-    reset();
-    update();
-  </script>
+function reset(){
+ p={x:55,y:390,w:25,h:35,vy:0,ground:true};
+ obs=[];parts=[];score=0;speed=3.5;frame=0;over=false;started=true;
+}
+function jump(){
+ if(over){reset();return}
+ if(!started)reset();
+ if(p.ground){p.vy=-11.5;p.ground=false;
+ for(let i=0;i<7;i++)parts.push({x:p.x+10,y:425,vx:Math.random()*3,vy:-Math.random()*3,life:18})}
+}
+document.getElementById("jump").onclick=jump;
+c.addEventListener("pointerdown",jump);
+document.addEventListener("keydown",e=>{if(e.code==="Space"||e.code==="ArrowUp"){e.preventDefault();jump()}});
+function rect(a,b,w,h,color,glow){
+ x.shadowBlur=glow||0;x.shadowColor=color;x.fillStyle=color;x.fillRect(a,b,w,h);x.shadowBlur=0;
+}
+function draw(){
+ let g=x.createLinearGradient(0,0,0,500);
+ g.addColorStop(0,"#101737");g.addColorStop(1,"#281344");
+ x.fillStyle=g;x.fillRect(0,0,360,500);
+ // estrellas
+ for(let i=0;i<40;i++){
+  let sx=(i*83+frame*.12)%360,sy=(i*47)%300;
+  x.fillStyle="#a5eaff";x.fillRect(sx,sy,2,2);
+ }
+ // edificios
+ for(let i=0;i<12;i++){
+  let bx=i*34-(frame*.35%34),bh=65+(i*37%100);
+  rect(bx,425-bh,27,bh,"#17264b");
+  for(let wy=435-bh;wy<418;wy+=15)
+   for(let wx=bx+5;wx<bx+25;wx+=10)
+    if((wx+wy+i)%3!==0)rect(wx,wy,3,5,"#277d9c");
+ }
+ // suelo
+ rect(0,425,360,75,"#101b35");
+ rect(0,425,360,3,"#4df6ff",12);
+ for(let i=0;i<12;i++){
+  let lx=(i*40-frame*speed*1.7)%400;
+  rect(lx,449,20,3,"#28557b");
+ }
+ // obstaculos
+ obs.forEach(o=>{
+  if(o.type===0){
+   rect(o.x,o.y,o.w,o.h,"#ff3e79",12);
+   rect(o.x+5,o.y+5,o.w-10,o.h-10,"#ff9cbd",3);
+  }else{
+   rect(o.x,o.y,o.w,o.h,"#ffb642",10);
+   rect(o.x+4,o.y+5,o.w-8,5,"#fff1a3");
+  }
+ });
+ // personaje con sombra y armadura
+ x.save();
+ x.shadowBlur=15;x.shadowColor="#46f7ff";
+ x.fillStyle="#37dfff";
+ x.fillRect(p.x,p.y+7,p.w,p.h-9);
+ x.fillStyle="#bafaff";x.fillRect(p.x+5,p.y+2,17,14);
+ x.fillStyle="#101a38";x.fillRect(p.x+13,p.y+6,10,5);
+ x.shadowBlur=0;
+ x.fillStyle="#e7fcff";x.fillRect(p.x+4,p.y+20,5,8);
+ x.fillStyle="#ff4e91";x.fillRect(p.x+2,p.y+p.h-3,9,5);
+ x.fillRect(p.x+17,p.y+p.h-3,9,5);
+ x.restore();
+ // particulas
+ parts.forEach(a=>{x.globalAlpha=Math.max(0,a.life/18);rect(a.x,a.y,3,3,"#5cf6ff");x.globalAlpha=1});
+ if(!started||over){
+  x.fillStyle="rgba(3,7,20,.78)";x.fillRect(25,175,310,125);
+  x.textAlign="center";
+  x.fillStyle=over?"#ff5789":"#54f6ff";
+  x.font="bold 25px Arial";x.fillText(over?"¡TE ATRAPARON!":"¿LISTO PARA CORRER?",180,220);
+  x.fillStyle="white";x.font="15px Arial";
+  x.fillText(over?"Toca SALTAR para reintentar":"Pulsa SALTAR para comenzar",180,254);
+  x.textAlign="left";
+ }
+}
+function update(){
+ frame++;
+ if(started&&!over){
+  p.vy+=.58;p.y+=p.vy;
+  if(p.y+p.h>=425){p.y=425-p.h;p.vy=0;p.ground=true}
+  if(frame%Math.max(43,Math.floor(85-score/20))===0){
+   let h=25+Math.random()*18;
+   obs.push({x:370,y:425-h,w:20+Math.random()*9,h,type:Math.random()<.75?0:1,passed:false});
+  }
+  obs.forEach(o=>{
+   o.x-=speed;
+   if(!o.passed&&o.x+o.w<p.x){score+=10;o.passed=true}
+   if(p.x+ p.w-4>o.x+3&&p.x+4<o.x+o.w-3&&p.y+p.h-3>o.y+3&&p.y+3<o.y+o.h){
+    over=true;
+    if(score>best){best=score;try{localStorage.setItem("neonBest",best)}catch(e){}}
+    bestEl.textContent="RÉCORD "+best;
+   }
+  });
+  obs=obs.filter(o=>o.x+o.w>0);
+  if(frame%8===0)score++;
+  speed=Math.min(8,3.5+score/250);
+  scoreEl.textContent="PUNTOS "+score;
+ }
+ parts.forEach(a=>{a.x+=a.vx;a.y+=a.vy;a.vy+=.15;a.life--});
+ parts=parts.filter(a=>a.life>0);
+ draw();requestAnimationFrame(update);
+}
+reset();started=false;update();
+</script>
 </body>
 </html>
