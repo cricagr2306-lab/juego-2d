@@ -1,0 +1,164 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Neon Run</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #101525;
+      color: white;
+      font-family: Arial, sans-serif;
+      text-align: center;
+    }
+    h1 { color: #5cf6ff; }
+    canvas {
+      width: 100%;
+      max-width: 480px;
+      background: #18233b;
+      border: 2px solid #5cf6ff;
+      border-radius: 12px;
+      display: block;
+      margin: auto;
+      touch-action: manipulation;
+    }
+    button {
+      margin: 12px;
+      padding: 14px 28px;
+      border: 0;
+      border-radius: 10px;
+      background: #5cf6ff;
+      color: #101525;
+      font-size: 18px;
+      font-weight: bold;
+    }
+    p { color: #cbd5e1; }
+  </style>
+</head>
+<body>
+  <h1>NEON RUN</h1>
+  <p>Salta los obstáculos y consigue puntos.</p>
+  <canvas id="game" width="360" height="480"></canvas>
+  <button id="jump">SALTAR</button>
+  <p id="score">Puntos: 0</p>
+
+  <script>
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+    const scoreText = document.getElementById("score");
+
+    let player, obstacles, score, speed, over, frame;
+
+    function reset() {
+      player = { x: 45, y: 390, w: 28, h: 36, vy: 0, grounded: true };
+      obstacles = [];
+      score = 0;
+      speed = 4;
+      over = false;
+      frame = 0;
+    }
+
+    function jump() {
+      if (over) {
+        reset();
+        return;
+      }
+      if (player.grounded) {
+        player.vy = -12;
+        player.grounded = false;
+      }
+    }
+
+    document.getElementById("jump").addEventListener("click", jump);
+    canvas.addEventListener("click", jump);
+
+    document.addEventListener("keydown", e => {
+      if (e.code === "Space" || e.code === "ArrowUp") {
+        e.preventDefault();
+        jump();
+      }
+    });
+
+    function draw() {
+      ctx.clearRect(0, 0, 360, 480);
+
+      ctx.fillStyle = "#253653";
+      ctx.fillRect(0, 426, 360, 54);
+
+      ctx.strokeStyle = "#5cf6ff";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(0, 426);
+      ctx.lineTo(360, 426);
+      ctx.stroke();
+
+      ctx.fillStyle = "#5cf6ff";
+      ctx.fillRect(player.x, player.y, player.w, player.h);
+
+      ctx.fillStyle = "#ff5577";
+      obstacles.forEach(o => {
+        ctx.fillRect(o.x, o.y, o.w, o.h);
+      });
+
+      ctx.fillStyle = "white";
+      ctx.font = "16px Arial";
+      ctx.fillText("NEON RUN", 12, 25);
+
+      if (over) {
+        ctx.fillStyle = "rgba(0,0,0,0.75)";
+        ctx.fillRect(20, 170, 320, 110);
+        ctx.fillStyle = "#ff5577";
+        ctx.font = "bold 25px Arial";
+        ctx.fillText("FIN DEL JUEGO", 72, 215);
+        ctx.fillStyle = "white";
+        ctx.font = "15px Arial";
+        ctx.fillText("Pulsa SALTAR para reiniciar", 67, 247);
+      }
+    }
+
+    function update() {
+      if (!over) {
+        frame++;
+        player.vy += 0.6;
+        player.y += player.vy;
+
+        if (player.y + player.h >= 426) {
+          player.y = 426 - player.h;
+          player.vy = 0;
+          player.grounded = true;
+        }
+
+        if (frame % 85 === 0) {
+          obstacles.push({ x: 360, y: 396, w: 25, h: 30 });
+        }
+
+        obstacles.forEach(o => o.x -= speed);
+        obstacles = obstacles.filter(o => o.x + o.w > 0);
+
+        for (const o of obstacles) {
+          if (
+            player.x < o.x + o.w &&
+            player.x + player.w > o.x &&
+            player.y < o.y + o.h &&
+            player.y + player.h > o.y
+          ) {
+            over = true;
+          }
+        }
+
+        score++;
+        speed = 4 + score / 600;
+        scoreText.textContent = "Puntos: " + Math.floor(score / 6);
+      }
+      draw();
+      requestAnimationFrame(update);
+    }
+
+    reset();
+    update();
+  </script>
+</body>
+</html>
